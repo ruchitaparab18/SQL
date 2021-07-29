@@ -1,0 +1,340 @@
+SQL 
+
+-- 1>Write a SQL query to find the nth highest salary from employee table. 
+-- Example: finding 3rd highest salary from employee table
+
+
+with salcte (salary , rownum)
+as (select salary , row_number() over (order by salary desc) as sal
+from employee)
+select salary , rownum from salcte
+where rownum=3
+
+
+-- 2> Write a SQL query to find the count of employees working in department 'Admin'
+
+select count(employee_id)
+from Employee
+where DEPARTMENT='Admin'
+
+
+-- 4> Write a SQL query to fetch department wise count employees sorted by department count in desc order.
+select count(employee_id) as num , department
+from Employee
+group by DEPARTMENT
+order by count(employee_id) desc
+
+-- 5>Write a query to fetch only the first name(string before space) from the FullName column of user_name table.
+select  case when CHARINDEX(' ',full_names) > 0 then LEFT(full_names,CHARINDEX(' ',full_names)-1)
+else full_names end as first_name
+from user_name
+-- Also fetch the last name
+select  case when CHARINDEX(' ',full_names) > 0 then LEFT(full_names,CHARINDEX(' ',full_names)-1)
+else full_names end as first_name,
+case when CHARINDEX(' ', full_names)>0 then SUBSTRING( full_names,CHARINDEX(' ', full_names)+1 ,len(full_names)-CHARINDEX(' ', full_names))
+else full_names end as last_name
+from user_name
+
+--6>Write a SQL query to find all the employees from employee table who are also managers
+select e.employee_id from Employee e, Employee d
+where e.EMPLOYEE_ID=d.MANAGER_ID
+
+--7>Write a SQL query to find all employees who have bonus record in bonus table
+-- note : if i do not do subquery  and instead join in the query clause itself then I will have duplicate values. 
+select e.FIRST_NAME,e.LAST_NAME from Employee e
+where e.EMPLOYEE_ID in (select b.EMPLOYEE_REF_ID from bonus b
+join Employee e on b.EMPLOYEE_REF_ID=e.EMPLOYEE_ID)
+
+-- 8> Write a SQL query to find only odd rows from employee table
+select employee_id from Employee where EMPLOYEE_ID%2<>0
+
+-- 9>Write a SQL query to fetch first_name from employee table in upper case
+
+select UPPER(first_name) from Employee
+
+-- 10> Write a SQL query to get combine name (first name and last name) of employees from employee table
+
+select CONCAT(first_name,' ' ,last_name) from Employee
+
+
+-- 11> Write a SQL query to print details of employee of employee 'Jennifer' and 'James'.
+select * from employee where first_name in ('Jennifer', 'James');
+
+-- 12> Write a SQL query to fetch records of employee whose salary lies between 
+select first_name, last_name, salary from employee where salary between 100000 and 500000;
+
+-- 13> Write a SQL query to get records of employe who have joined in Jan 2017
+select * from employee;
+
+select first_name, last_name, joining_date from employee where year(joining_date)=2017 and month(joining_date) = 1;
+
+-- 14> Write a SQL query to get the list of employees with the same salary
+
+select e.employee_id , e.SALARY from Employee e, Employee d
+where e.SALARY=d.SALARY and e.EMPLOYEE_ID<>d.EMPLOYEE_ID
+
+-- 15> Write a SQL query to show all departments along with the number of people working there. 
+select department , count(employee_id)
+from employee
+group by DEPARTMENT
+
+-- 16> Write a SQL query to show the last record from a table.
+select * from employee where EMPLOYEE_ID in (select Max(employee_id) from Employee)
+
+-- 17> Write a SQL query to show the first record from a table.
+select * from employee where EMPLOYEE_ID in (select Min(employee_id) from Employee)
+
+-- 18> Write a SQL query to get last five records from a employee table.
+WITH topSelection AS
+(
+select  ROW_NUMBER() over(order by employee_id desc) AS Row# , * from employee
+)
+select * from topSelection
+where row#<=5
+
+-- 19> Write a SQL query to find employees having the highest salary in each department. 
+select department , max(Salary) , EMPLOYEE_ID
+
+from Employee
+
+group by DEPARTMENT , EMPLOYEE_ID
+
+-- 20> Write a SQL query to fetch three max salaries from employee table.
+select distinct(e1.SALARY) 
+from employee e1
+where 3>= (select count(distinct salary) from employee e2 where e1.SALARY<=e2.salary)
+order by e1.salary desc
+
+-- 21> Write a SQL query to fetch departments along with the total salaries paid for each of them.
+select department , sum(salary) as totalsalary
+from employee 
+group by department
+order by sum(salary)
+
+
+-- 22> Write a SQL query to find employee with highest salary in an organization from employee table.
+
+select first_name , last_name 
+from employee
+where salary in (select max(Salary) from Employee)
+
+-- 24> write a SQL query to find employee (first name, last name, department and bonus) with highest bonus.
+
+
+select e.FIRST_NAME,e.LAST_NAME, e.DEPARTMENT , b.BONUS_AMOUNT
+from employee e
+join bonus b on b.EMPLOYEE_REF_ID=e.EMPLOYEE_ID
+where b.BONUS_AMOUNT in (select Max(bonus_amount) from Bonus)
+
+-- 25> write a SQL query to find employees with same salary
+
+select e.first_name , e.last_name , e.salary
+from employee e , employee e1
+where e.salary=e1.salary and e.EMPLOYEE_ID<>e1.EMPLOYEE_ID
+
+-- 26> Write SQL to find out what percent of students attend school on their birthday from attendance_events and all_students tables?
+
+select (count(s.student_id)*100/(select count(student_id) from all_students)) studentpercent 
+from all_students s
+join attendance_events a on a.student_id=s.student_id
+where MONTH(cast(s.date_of_birth as date))=month(CAST(a.date_event as date)) and day(cast(s.date_of_birth as date))=day(CAST(a.date_event as date)) and a.attendance='present'
+
+-- 27> Given timestamps of logins, figure out how many people on Facebook were active all seven days
+--  of a week on a mobile phone from login info table?
+
+With countCte As(
+select l.user_id , cast(l.login_time as date)dt,
+LAG(CAST(l.login_time as date)) over (partition by l.user_id order by CAST(l.login_time as date))previousday ,
+DATEDIFF(day,LAG(CAST(l.login_time as date)) over (partition by l.user_id order by CAST(l.login_time as date)),CAST(l.login_time as date))diff
+from login_info l)
+
+select count(distinct user_id)#ofusers from countCte
+where diff=1
+
+-- 28> Write a SQL query to find out the overall friend acceptance rate for a given date from user_action table.
+select* from USER_ACTION
+
+select cast(date_action as date), (count(action)*100)/(select count(*)from USER_ACTION) as acceptancerate
+from USER_ACTION
+where action='accepted'
+group by cast(date_action as date)
+
+-- 29> How many total users follow sport accounts from tables all_users, sport_accounts, follow_relation?
+
+select * from all_users;
+select * from sport_accounts;
+select * from follow_relation;
+
+select count(*) from 
+sport_accounts s
+join all_users a on s.sport_player_id=a.user_id
+join follow_relation f on f.target_id=s.sport_player_id
+
+-- 30> How many active users follow each type of sport?
+select a.user_id , s.sport_category from all_users a
+join sport_accounts s on s.sport_player_id= a.user_id
+where active_last_month=1
+
+--OR
+
+select s.sport_category , count(a.user_id) as #ofUsers
+from all_users a
+join sport_accounts s on s.sport_player_id= a.user_id
+--join follow_relation f on f.follower_id=a.user_id
+where a.active_last_month=1
+group by s.sport_category
+
+-- 33> Write a SQL query to determine avg time spent per user per day from user_details and event_session_details
+select cast(u.date as date) as day,u.user_id , Avg(e.timespend_sec) as averagetime
+from user_details u
+join event_session_details e on e.session_id= u.session_id
+group by u.user_id, cast(u.date as date)
+order by Avg(e.timespend_sec)
+
+-- 34> write a SQL query to find top 10 users that sent the most messages from messages_detail table.
+Select user_id ,messages_sent
+from messages_detail
+where user_id in (select Top 10(user_id) from messages_detail order by messages_sent desc)
+
+-- 35> Write a SQL query to find disctinct first name from full user name from usere_name table
+
+select distinct(LEFT(full_names,CHARINDEX(' ',full_names)-1)) from user_name
+
+-- 36> You have a table with userID, appID, type and timestamp. type is either 'click' or 'impression'. 
+-- Calculate the click through rate from dialoglog table. Now do it in for each app.
+-- click through rate is defined as (number of clicks)/(number of impressions)
+
+
+select app_id ,isnull((sum(case when type='click' then 1 end)*1.0/sum(case when type='impression' then 1 end)),0) as clickthroughrate
+from DIALOGLOG
+group by app_id
+
+or
+
+select  a.app_id , c*1.0/i from
+(select app_id,count(type) as c from DIALOGLOG
+where type='click'
+group by app_id ) as A
+join
+(select app_id,count(type) as i from DIALOGLOG
+where type='impression'
+group by app_id) as b
+on a.app_id=b.app_id
+union 
+select app_id, 0.00 as c from DIALOGLOG
+where type='click'
+and app_id not in  
+(select distinct app_id as i from DIALOGLOG
+where type='impression')
+union 
+select app_id, 0.00 as c from DIALOGLOG
+where type='impression'
+and app_id not in
+(select distinct app_id as i from DIALOGLOG
+where type='click')
+
+
+-- 37> Given two tables Friend_request (requestor_id, sent_to_id, time),  
+-- Request_accepted (acceptor_id, requestor_id, time). Find the overall acceptance rate of requests.
+-- Overall acceptate rate of requests = total number of acceptance / total number of requests.
+
+select ISNULL
+((select count(*) from (select distinct acceptor_id, requestor_id from request_accepted) as A)*1.0
+/(select count(*) from (select distinct requestor_id,sent_to_id from friend_request) as B),0)
+
+-- or
+
+select Round((select count( distinct concat(acceptor_id,requestor_id)) as acceptedcount from request_accepted)*1.0
+/count(distinct CONCAT(requestor_id,sent_to_id)),2) from
+friend_request
+
+
+-- 38> from a table of new_request_accepted, find a user with the most friends.
+Select x.id from 
+(
+select Top(1)count(*)as topuser, id from
+(
+select requestor_id as id from new_request_accepted
+union all
+select acceptor_id as id from new_request_accepted ) as b
+group by id
+order by count(*) desc) as x
+
+
+-- 39> from the table count_request, find total count of requests sent and total count of requests sent failed 
+-- per country
+select country_code,sum(TRS) as requestsent, sum(TRS*cast(left(TRF,3)as float))/100 as requestfailed
+from 
+(
+select country_code, count_of_requests_sent as TRS,
+replace(isnull((percent_of_request_sent_failed),0),'%','') as TRF
+from count_request
+--group by country_code 
+)as x
+group by country_code
+
+-- 40> create a histogram of duration on x axis, no of users on y axis which is populated by volume in each bucket
+-- from event_session_details
+select FLOOR(timespend_sec/500)*500 as bucket, count(distinct user_id) as count_of_users
+from event_session_details
+group by FLOOR(timespend_sec/500)*500
+
+-- 41> Write SQL query to calculate percentage of confirmed messages from two tables : 
+-- confirmation_no (phone numbers that facebook sends the confirmation messages to) and 
+-- confirmed_no (phone numbers that confirmed the verification)
+select cast(Round(count(c.phone_number)*100.0/(select count(phone_number) from confirmation_no),2) as decimal(10,2)) from confirmed_no c
+join confirmation_no n on n.phone_number= c.phone_number
+
+-- 42> Write SQL query to find number of users who had 4 or more than 4 interactions on 2013-03-23 date 
+-- from user_interaction table (user_1, user_2, date). 
+-- assume there is only one unique interaction between a pair of users per day
+
+select x.user_id , sum(x.numberofinteractions) from 
+(select user_1 as user_id ,count(user_1) as numberofinteractions 
+from user_interaction 
+group by user_1
+union All
+select user_2 as user_id,count(user_2) as numberofinteractions
+from user_interaction
+group by user_2)x
+group by x.user_id
+having sum(x.numberofinteractions)>=4
+
+
+
+-- 43> write a sql query to find the names of all salesperson that have order with samsonic from 
+-- the table: salesperson, customer, orders
+select s.name from salesperson s
+join orders o on o.salesperson_id=s.id
+join customer c on c.id=o.cust_id
+where c.name='Samsonic'
+
+-- 44> write a sql query to find the names of all salesperson that do not have any order with Samsonic from the table: salesperson, customer, orders
+select s.name from salesperson s
+where s.id not in (select o.salesperson_id from orders o join customer c on c.id=o.cust_id where c.name='Samsonic')
+
+-- 45> Wrie a sql query to find the names of salespeople that have 2  or more orders.
+select s.name , count(o.salesperson_id)
+from salesperson s
+join orders o on o.salesperson_id=s.id
+group by s.name
+having count(o.salesperson_id)>=2
+
+-- 49> Write a SQL query to find out how many users inserted more than 1000 but less than 2000 images in their presentations from event_log table
+-- There is a startup company that makes an online presentation software and they have event_log table that records every time a user inserted 
+-- an image into a presentation. one user can insert multiple images
+
+select count(*) from 
+(select user_id, count(event_date_time) as image_per_user
+from event_log
+group by user_id) as image_per_user
+where image_per_user <2000 and image_per_user>1000;
+
+
+
+-- 50> select the most recent login time by values from the login_info table
+
+select TOP 1* from login_info
+where login_time  in (select max(login_time) from login_info
+group by user_id)
+order by login_time desc
